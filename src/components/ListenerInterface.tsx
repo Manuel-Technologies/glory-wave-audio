@@ -324,7 +324,7 @@ const ListenerInterface: React.FC<ListenerInterfaceProps> = ({ onBack }) => {
                   <>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Buffering:</span>
-                      <span className="text-sm font-medium">< 1s</span>
+                      <span className="text-sm font-medium">&lt; 1s</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-muted-foreground">Quality:</span>
