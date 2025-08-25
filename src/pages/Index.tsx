@@ -186,8 +186,9 @@ const Index = () => {
                 <p className="text-sm text-muted-foreground">Broadcast His Glory, Loud and Clear</p>
               </div>
             </div>
-            <div className="text-sm text-muted-foreground">
-              © 2024 GloryWave. Built for the Kingdom.
+            <div className="text-sm text-muted-foreground text-center md:text-right">
+              <p>© {new Date().getFullYear()} GloryWave. Built for the Kingdom.</p>
+              <p className="text-xs mt-1">Powered by manuel technologies</p>
             </div>
           </div>
         </div>
