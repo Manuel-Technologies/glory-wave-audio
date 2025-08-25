@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,53 +18,53 @@ import {
   Radio,
   Settings,
   AlertTriangle,
-  CheckCircle
+  CheckCircle,
+  Wifi,
+  WifiOff
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import WaveformLogo from './WaveformLogo';
 import AudioLevelMeter from './AudioLevelMeter';
+import { useAudioStream } from '@/hooks/useAudioStream';
 
 interface BroadcasterDashboardProps {
   onBack: () => void;
 }
 
 const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) => {
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
-  const [volume, setVolume] = useState([100]);
-  const [gain, setGain] = useState([150]);
-  const [limiterEnabled, setLimiterEnabled] = useState(true);
-  const [normalizerEnabled, setNormalizerEnabled] = useState(true);
   const [streamTitle, setStreamTitle] = useState("Sunday Service");
   const [listenerCount] = useState(0);
-  const [audioLevel, setAudioLevel] = useState(0);
-  const [isClipping, setIsClipping] = useState(false);
   const [streamUrl] = useState("https://glorywave.app/listen/abc123");
+  const [volume, setVolumeSlider] = useState([100]);
+  const [gain, setGainSlider] = useState([150]);
   
   const { toast } = useToast();
 
-  // Simulate audio level fluctuation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (isStreaming && !isMuted) {
-        const newLevel = Math.random() * 100;
-        setAudioLevel(newLevel);
-        setIsClipping(newLevel > 85);
-      } else {
-        setAudioLevel(0);
-        setIsClipping(false);
+  // Use real audio stream hook
+  const [audioState, audioControls] = useAudioStream();
+
+  const handleStartStream = async () => {
+    if (audioState.isStreaming) {
+      audioControls.stopStream();
+      toast({
+        title: "Stream Stopped",
+        description: "Your broadcast has ended.",
+      });
+    } else {
+      try {
+        await audioControls.startStream();
+        toast({
+          title: "Stream Started",
+          description: "You're now live! Share your link.",
+        });
+      } catch (error) {
+        toast({
+          title: "Stream Failed",
+          description: audioState.error || "Failed to start stream",
+          variant: "destructive",
+        });
       }
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [isStreaming, isMuted]);
-
-  const handleStartStream = () => {
-    setIsStreaming(!isStreaming);
-    toast({
-      title: isStreaming ? "Stream Stopped" : "Stream Started",
-      description: isStreaming ? "Your broadcast has ended." : "You're now live! Share your link.",
-    });
+    }
   };
 
   const copyStreamLink = () => {
@@ -76,11 +76,24 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
   };
 
   const getAudioStatus = () => {
-    if (!isStreaming) return { text: "Offline", color: "text-muted-foreground" };
-    if (isClipping) return { text: "Clipping", color: "text-glory-red" };
-    if (audioLevel > 70) return { text: "Hot", color: "text-glory-amber" };
-    if (audioLevel > 30) return { text: "Good", color: "text-glory-green" };
+    if (!audioState.isStreaming) return { text: "Offline", color: "text-muted-foreground" };
+    if (audioState.error) return { text: "Error", color: "text-glory-red" };
+    if (audioState.isClipping) return { text: "Clipping", color: "text-glory-red" };
+    if (audioState.audioLevel > 70) return { text: "Hot", color: "text-glory-amber" };
+    if (audioState.audioLevel > 30) return { text: "Good", color: "text-glory-green" };
     return { text: "Low", color: "text-muted-foreground" };
+  };
+
+  // Handle volume changes
+  const handleVolumeChange = (value: number[]) => {
+    setVolumeSlider(value);
+    audioControls.setVolume(value[0]);
+  };
+
+  // Handle gain changes
+  const handleGainChange = (value: number[]) => {
+    setGainSlider(value);
+    audioControls.setGain(value[0]);
   };
 
   const audioStatus = getAudioStatus();
@@ -106,10 +119,10 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
           
           <div className="flex items-center gap-2">
             <Badge 
-              variant={isStreaming ? "default" : "secondary"}
-              className={isStreaming ? "bg-glory-green text-background" : ""}
+              variant={audioState.isStreaming ? "default" : "secondary"}
+              className={audioState.isStreaming ? "bg-glory-green text-background" : ""}
             >
-              {isStreaming ? (
+              {audioState.isStreaming ? (
                 <>
                   <Radio className="w-3 h-3 mr-1" />
                   LIVE
@@ -118,6 +131,20 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
                 "OFFLINE"
               )}
             </Badge>
+            
+            {audioState.isConnected && (
+              <Badge variant="secondary" className="bg-glory-indigo/10 text-glory-indigo">
+                <Wifi className="w-3 h-3 mr-1" />
+                Connected
+              </Badge>
+            )}
+            
+            {audioState.error && (
+              <Badge variant="destructive">
+                <WifiOff className="w-3 h-3 mr-1" />
+                Error
+              </Badge>
+            )}
           </div>
         </div>
 
@@ -148,12 +175,13 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
                     <Button
                       size="lg"
                       onClick={handleStartStream}
-                      className={`px-8 ${isStreaming 
+                      disabled={!!audioState.error}
+                      className={`px-8 ${audioState.isStreaming 
                         ? 'bg-glory-red hover:bg-glory-red/90' 
                         : 'bg-glory-indigo hover:bg-glory-indigo/90'
                       } text-white font-medium`}
                     >
-                      {isStreaming ? (
+                      {audioState.isStreaming ? (
                         <>
                           <MicOff className="mr-2 h-5 w-5" />
                           Stop Stream
@@ -168,10 +196,11 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
 
                     <Button
                       variant="outline"
-                      onClick={() => setIsMuted(!isMuted)}
-                      className={`${isMuted ? 'bg-glory-red/10 border-glory-red text-glory-red' : ''}`}
+                      onClick={audioControls.toggleMute}
+                      disabled={!audioState.isStreaming}
+                      className={`${audioState.isMuted ? 'bg-glory-red/10 border-glory-red text-glory-red' : ''}`}
                     >
-                      {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                      {audioState.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                     </Button>
                   </div>
 
@@ -198,10 +227,11 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
                     <Label>Volume: {volume[0]}%</Label>
                     <Slider
                       value={volume}
-                      onValueChange={setVolume}
+                      onValueChange={handleVolumeChange}
                       max={200}
                       step={1}
                       className="w-full"
+                      disabled={!audioState.isStreaming}
                     />
                   </div>
 
@@ -209,10 +239,11 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
                     <Label>Gain Boost: {gain[0]}%</Label>
                     <Slider
                       value={gain}
-                      onValueChange={setGain}
+                      onValueChange={handleGainChange}
                       max={200}
                       step={1}
                       className="w-full"
+                      disabled={!audioState.isStreaming}
                     />
                   </div>
                 </div>
@@ -221,8 +252,8 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
                   <div className="flex items-center space-x-2">
                     <Switch 
                       id="limiter" 
-                      checked={limiterEnabled}
-                      onCheckedChange={setLimiterEnabled}
+                      checked={true}
+                      onCheckedChange={audioControls.enableLimiter}
                     />
                     <Label htmlFor="limiter">Auto Limiter</Label>
                   </div>
@@ -230,12 +261,23 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
                   <div className="flex items-center space-x-2">
                     <Switch 
                       id="normalizer" 
-                      checked={normalizerEnabled}
-                      onCheckedChange={setNormalizerEnabled}
+                      checked={true}
+                      onCheckedChange={audioControls.enableNormalizer}
                     />
                     <Label htmlFor="normalizer">Voice Normalizer</Label>
                   </div>
                 </div>
+
+                {audioState.error && (
+                  <div className="p-3 bg-glory-red/10 border border-glory-red/20 rounded-lg">
+                    <p className="text-sm text-glory-red font-medium">
+                      {audioState.error}
+                    </p>
+                    <p className="text-xs text-glory-red/80 mt-1">
+                      Please check your microphone permissions and try again.
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -278,15 +320,17 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <AudioLevelMeter level={audioLevel} />
+                  <AudioLevelMeter level={audioState.audioLevel} />
                   
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">Status:</span>
                     <div className="flex items-center gap-2">
-                      {isClipping ? (
+                      {audioState.isClipping ? (
                         <AlertTriangle className="h-4 w-4 text-glory-red" />
-                      ) : (
+                      ) : audioState.isStreaming ? (
                         <CheckCircle className="h-4 w-4 text-glory-green" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 text-muted-foreground" />
                       )}
                       <span className={`font-medium ${audioStatus.color}`}>
                         {audioStatus.text}
@@ -295,9 +339,15 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
                   </div>
 
                   <div className="text-sm text-muted-foreground">
-                    <div>Level: {Math.round(audioLevel)}%</div>
-                    <div>Peak: {Math.round(Math.max(audioLevel, 0))}%</div>
+                    <div>Level: {Math.round(audioState.audioLevel)}%</div>
+                    <div>Peak: {Math.round(Math.max(audioState.audioLevel, 0))}%</div>
                   </div>
+
+                  {audioState.isStreaming && !audioState.isConnected && (
+                    <div className="p-2 bg-glory-amber/10 border border-glory-amber/20 rounded text-xs text-glory-amber">
+                      Connecting to streaming server...
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -319,7 +369,7 @@ const BroadcasterDashboard: React.FC<BroadcasterDashboardProps> = ({ onBack }) =
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Uptime:</span>
                   <span className="text-sm font-medium">
-                    {isStreaming ? "0:00" : "--:--"}
+                    {audioState.isStreaming ? "0:00" : "--:--"}
                   </span>
                 </div>
                 <div className="flex justify-between">
