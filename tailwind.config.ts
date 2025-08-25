@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -18,12 +19,31 @@ export default {
 			}
 		},
 		extend: {
+			fontFamily: {
+				'montserrat': ['Montserrat', 'system-ui', '-apple-system', 'sans-serif'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
 				background: 'hsl(var(--background))',
 				foreground: 'hsl(var(--foreground))',
+				surface: 'hsl(var(--surface))',
+				'surface-elevated': 'hsl(var(--surface-elevated))',
+				
+				// GloryWave Brand Colors
+				'glory-green': 'hsl(var(--glory-green))',
+				'glory-red': 'hsl(var(--glory-red))',
+				'glory-indigo': 'hsl(var(--glory-indigo))',
+				'glory-amber': 'hsl(var(--glory-amber))',
+				'glory-purple': 'hsl(var(--glory-purple))',
+				
+				// Audio-specific colors
+				'audio-safe': 'hsl(var(--audio-safe))',
+				'audio-warning': 'hsl(var(--audio-warning))',
+				'audio-danger': 'hsl(var(--audio-danger))',
+				'audio-active': 'hsl(var(--audio-active))',
+				
 				primary: {
 					DEFAULT: 'hsl(var(--primary))',
 					foreground: 'hsl(var(--primary-foreground))'
