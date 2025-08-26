@@ -14,7 +14,77 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      streams: {
+        Row: {
+          broadcaster_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          listener_count: number
+          stream_url: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          broadcaster_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          listener_count?: number
+          stream_url: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          broadcaster_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          listener_count?: number
+          stream_url?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      webrtc_signals: {
+        Row: {
+          created_at: string
+          id: string
+          receiver_id: string | null
+          sender_id: string
+          signal_data: Json
+          signal_type: string
+          stream_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receiver_id?: string | null
+          sender_id: string
+          signal_data: Json
+          signal_type: string
+          stream_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receiver_id?: string | null
+          sender_id?: string
+          signal_data?: Json
+          signal_type?: string
+          stream_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "webrtc_signals_stream_id_fkey"
+            columns: ["stream_id"]
+            isOneToOne: false
+            referencedRelation: "streams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
