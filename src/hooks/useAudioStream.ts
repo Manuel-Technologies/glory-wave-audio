@@ -36,7 +36,6 @@ export const useAudioStream = (): [AudioStreamState, AudioStreamControls] => {
   const gainNodeRef = useRef<GainNode | null>(null);
   const limiterRef = useRef<DynamicsCompressorNode | null>(null);
   const animationFrameRef = useRef<number>();
-  const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
 
   const [volume, setVolumeState] = useState(100);
   const [gain, setGainState] = useState(150);
@@ -127,46 +126,16 @@ export const useAudioStream = (): [AudioStreamState, AudioStreamControls] => {
   }, [volume, gain, limiterEnabled, analyzeAudio]);
 
   const setupWebRTC = useCallback(async (stream: MediaStream) => {
-    try {
-      // Create RTCPeerConnection for streaming
-      peerConnectionRef.current = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      });
-
-      const peerConnection = peerConnectionRef.current;
-
-      // Add audio track to peer connection
-      stream.getAudioTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
-      });
-
-      // Handle ICE candidates
-      peerConnection.onicecandidate = (event) => {
-        if (event.candidate) {
-          // In a real implementation, send this to your streaming server
-          console.log('ICE candidate:', event.candidate);
-        }
-      };
-
-      // Handle connection state changes
-      peerConnection.onconnectionstatechange = () => {
-        console.log('Connection state:', peerConnection.connectionState);
-        setState(prev => ({
-          ...prev,
-          isConnected: peerConnection.connectionState === 'connected'
-        }));
-      };
-
-    } catch (error) {
-      console.error('Error setting up WebRTC:', error);
-      setState(prev => ({ 
-        ...prev, 
-        error: 'Failed to setup streaming connection' 
+    // Mock WebRTC setup for frontend-only version
+    console.log('Mock WebRTC setup with stream:', stream);
+    
+    // Simulate connection after 2 seconds
+    setTimeout(() => {
+      setState(prev => ({
+        ...prev,
+        isConnected: true
       }));
-    }
+    }, 2000);
   }, []);
 
   const startStream = useCallback(async () => {
@@ -189,7 +158,7 @@ export const useAudioStream = (): [AudioStreamState, AudioStreamControls] => {
       // Setup audio processing pipeline
       await setupAudioProcessing(stream);
 
-      // Setup WebRTC for streaming
+      // Setup WebRTC for streaming (mock)
       await setupWebRTC(stream);
 
       setState(prev => ({ 
@@ -224,12 +193,6 @@ export const useAudioStream = (): [AudioStreamState, AudioStreamControls] => {
     if (audioContextRef.current) {
       audioContextRef.current.close();
       audioContextRef.current = null;
-    }
-
-    // Close peer connection
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-      peerConnectionRef.current = null;
     }
 
     // Reset refs

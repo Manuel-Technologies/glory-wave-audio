@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
 interface SignalingMessage {
   type: 'offer' | 'answer' | 'ice-candidate' | 'join-stream' | 'leave-stream';
@@ -23,86 +23,32 @@ export const useWebRTCSignaling = ({
   onAnswer,
   onIceCandidate
 }: UseWebRTCSignalingProps) => {
-  const wsRef = useRef<WebSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout>();
 
   const connect = useCallback(() => {
     if (!streamId) return;
 
-    // Use the full URL to the WebRTC signaling Edge Function
-    const wsUrl = `wss://hnicczmbnjmctsnzyiip.functions.supabase.co/functions/v1/webrtc-signaling`;
-    console.log('Connecting to WebRTC signaling server:', wsUrl);
-
-    wsRef.current = new WebSocket(wsUrl);
-
-    wsRef.current.onopen = () => {
-      console.log('WebRTC signaling connected');
-      // Join the stream
-      sendMessage({
-        type: 'join-stream',
-        streamId,
-        senderId: userId
-      });
-    };
-
-    wsRef.current.onmessage = (event) => {
-      try {
-        const message: SignalingMessage = JSON.parse(event.data);
-        console.log('Received signaling message:', message.type);
-
-        switch (message.type) {
-          case 'offer':
-            onOffer?.(message.data, message.senderId);
-            break;
-          case 'answer':
-            onAnswer?.(message.data, message.senderId);
-            break;
-          case 'ice-candidate':
-            onIceCandidate?.(message.data, message.senderId);
-            break;
-        }
-      } catch (error) {
-        console.error('Error parsing signaling message:', error);
-      }
-    };
-
-    wsRef.current.onclose = () => {
-      console.log('WebRTC signaling disconnected');
-      // Auto-reconnect after 3 seconds
-      reconnectTimeoutRef.current = setTimeout(() => {
-        if (streamId) {
-          connect();
-        }
-      }, 3000);
-    };
-
-    wsRef.current.onerror = (error) => {
-      console.error('WebRTC signaling error:', error);
-    };
-  }, [streamId, userId, onOffer, onAnswer, onIceCandidate]);
+    console.log('Mock: Connecting to WebRTC signaling for stream:', streamId);
+    
+    // Simulate connection after 1 second
+    setTimeout(() => {
+      setIsConnected(true);
+      console.log('Mock: WebRTC signaling connected');
+    }, 1000);
+  }, [streamId]);
 
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
     }
 
-    if (wsRef.current && streamId) {
-      // Leave the stream
-      sendMessage({
-        type: 'leave-stream',
-        streamId,
-        senderId: userId
-      });
-
-      wsRef.current.close();
-      wsRef.current = null;
-    }
-  }, [streamId, userId]);
+    console.log('Mock: Disconnecting from WebRTC signaling for stream:', streamId);
+    setIsConnected(false);
+  }, [streamId]);
 
   const sendMessage = useCallback((message: SignalingMessage) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(message));
-    }
+    console.log('Mock: Sending signaling message:', message.type);
   }, []);
 
   const sendOffer = useCallback((offer: RTCSessionDescriptionInit, receiverId?: string) => {
@@ -152,7 +98,7 @@ export const useWebRTCSignaling = ({
   }, [streamId, connect, disconnect]);
 
   return {
-    isConnected: wsRef.current?.readyState === WebSocket.OPEN,
+    isConnected,
     sendOffer,
     sendAnswer,
     sendIceCandidate,

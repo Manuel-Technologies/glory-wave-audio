@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
 
 interface Stream {
   id: string;
@@ -31,22 +30,28 @@ export const useStreamingAPI = () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const { data, error } = await supabase.functions.invoke('stream-management', {
-        body: { title },
-        method: 'POST'
-      });
-
-      if (error) throw error;
-
-      const newStream = data.stream;
+      // Mock stream creation
+      const mockStream: Stream = {
+        id: Math.random().toString(36).substr(2, 9),
+        title,
+        stream_url: `wss://mock-stream-${Math.random().toString(36).substr(2, 5)}.com`,
+        broadcaster_id: 'mock-user-id',
+        is_active: true,
+        listener_count: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      console.log('Mock: Created stream', mockStream);
+      
       setState(prev => ({
         ...prev,
-        currentStream: newStream,
-        streams: [newStream, ...prev.streams],
+        currentStream: mockStream,
+        streams: [mockStream, ...prev.streams],
         isLoading: false
       }));
 
-      return newStream;
+      return mockStream;
     } catch (error) {
       setState(prev => ({
         ...prev,
@@ -61,15 +66,23 @@ export const useStreamingAPI = () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     
     try {
-      const { data, error } = await supabase.functions.invoke('stream-management', {
-        method: 'GET'
-      });
-
-      if (error) throw error;
+      // Mock fetch streams
+      const mockStreams: Stream[] = [
+        {
+          id: 'mock-stream-1',
+          title: 'Morning Service',
+          stream_url: 'wss://mock-stream-1.com',
+          broadcaster_id: 'mock-user-id',
+          is_active: true,
+          listener_count: 42,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }
+      ];
 
       setState(prev => ({
         ...prev,
-        streams: data.streams,
+        streams: mockStreams,
         isLoading: false
       }));
     } catch (error) {
@@ -83,14 +96,10 @@ export const useStreamingAPI = () => {
 
   const updateStream = useCallback(async (streamId: string, updates: Partial<Stream>) => {
     try {
-      const { data, error } = await supabase.functions.invoke('stream-management', {
-        body: updates,
-        method: 'PUT'
-      });
-
-      if (error) throw error;
-
-      const updatedStream = data.stream;
+      console.log('Mock: Updating stream', streamId, updates);
+      
+      const updatedStream = { ...state.currentStream, ...updates } as Stream;
+      
       setState(prev => ({
         ...prev,
         streams: prev.streams.map(s => s.id === streamId ? updatedStream : s),
@@ -105,15 +114,11 @@ export const useStreamingAPI = () => {
       }));
       throw error;
     }
-  }, []);
+  }, [state.currentStream]);
 
   const endStream = useCallback(async (streamId: string) => {
     try {
-      const { error } = await supabase.functions.invoke('stream-management', {
-        method: 'DELETE'
-      });
-
-      if (error) throw error;
+      console.log('Mock: Ending stream', streamId);
 
       setState(prev => ({
         ...prev,
